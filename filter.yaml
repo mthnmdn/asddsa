@@ -45,5 +45,5 @@ spec:
             verbs:
               - create
           - level: None
-      name: akbank-audit-filter-policy
+      name: asd-audit-filter-policy
       type: kubeAPIAudit
