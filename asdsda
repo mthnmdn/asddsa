@@ -1,0 +1,11 @@
+histogram_quantile(0.99, sum by (le, name) (rate(apiserver_admission_webhook_admission_duration_seconds_bucket{type="validate",name=~".*stackrox.*|.*admission-control.*|.*rhacs.*"}[5m])))
+
+
+sum by (name) (rate(apiserver_admission_webhook_admission_duration_seconds_sum{type="validate",name=~".*stackrox.*|.*admission-control.*|.*rhacs.*"}[5m])) / sum by (name) (rate(apiserver_admission_webhook_admission_duration_seconds_count{type="validate",name=~".*stackrox.*|.*admission-control.*|.*rhacs.*"}[5m]))
+
+
+sum by (name, type) (rate(apiserver_admission_webhook_admission_duration_seconds_count[5m]))
+
+sum by (name, operation, type, error_type) (rate(apiserver_admission_webhook_rejection_count{name=~".*stackrox.*"}[5m]))
+
+sum by (name, type) (rate(apiserver_admission_webhook_fail_open_count{name=~".*stackrox.*"}[5m]))
