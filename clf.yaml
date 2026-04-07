@@ -1,0 +1,112 @@
+apiVersion: observability.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: logging
+  namespace: openshift-logging
+spec:
+  filters:
+    - name: mazlum-label
+      openshiftLabels:
+        cluster: mazlum
+      type: openshiftLabels
+    - name: audit-filtered-label
+      openshiftLabels:
+        auditfiltered: mazlum
+      type: openshiftLabels
+  inputs:
+    - audit:
+        sources:
+          - kubeAPI
+          - openshiftAPI
+      name: selected-audit-logs
+      type: audit
+    - application:
+        includes:
+          - namespace: emre-test2
+      name: emre-test
+      type: application
+  managementState: Managed
+  outputs:
+    - kafka:
+        authentication:
+          sasl:
+            mechanism: SCRAM-SHA-256
+            password:
+              key: password
+              secretName: aaaaa
+            username:
+              key: username
+              secretName: aaaaa
+        brokers:
+          - 'tls://lxxxxxxx01.aaaaa.asd:9093'
+        topic: ocp.vector.logforwarder.test.infra
+      name: kafka-output-infra
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: aaaa
+      type: kafka
+    - kafka:
+        authentication:
+          sasl:
+            mechanism: SCRAM-SHA-256
+            password:
+              key: password
+              secretName: aaaa
+            username:
+              key: username
+              secretName: aaaaa
+        brokers:
+          - 'tls://lxxxxxxx01.aaaaa.asd:9093'
+        topic: ocp.vector.logforwarder.test.audit
+      name: kafka-output-audit
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: aaaa
+      type: kafka
+    - elasticsearch:
+        index: app-write
+        url: 'https://xxxx.yyyy.com:9200'
+        version: 8
+      name: remote-elastic
+      tls:
+        certificate:
+          key: tls.crt
+          secretName: aaaa
+        key:
+          key: tls.key
+          secretName: aaaaa
+      type: elasticsearch
+  pipelines:
+    - filterRefs:
+        - mazlum-label
+      inputRefs:
+        - emre-test
+      name: logs-to-elk
+      outputRefs:
+        - remote-elastic
+    - filterRefs:
+        - mazlum-label
+      inputRefs:
+        - infrastructure
+      name: infra-pipeline
+      outputRefs:
+        - kafka-output-infra
+    - filterRefs:
+        - mazlum-label
+      inputRefs:
+        - audit
+      name: audit-pipeline
+      outputRefs:
+        - kafka-output-audit
+    - filterRefs:
+        - mazlum-label
+        - audit-filtered-label
+      inputRefs:
+        - selected-audit-logs
+      name: audit-pipeline-filtered
+      outputRefs:
+        - kafka-output-audit
+  serviceAccount:
+    name: collector
