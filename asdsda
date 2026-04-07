@@ -9,3 +9,6 @@ sum by (name, type) (rate(apiserver_admission_webhook_admission_duration_seconds
 sum by (name, operation, type, error_type) (rate(apiserver_admission_webhook_rejection_count{name=~".*stackrox.*"}[5m]))
 
 sum by (name, type) (rate(apiserver_admission_webhook_fail_open_count{name=~".*stackrox.*"}[5m]))
+
+
+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
