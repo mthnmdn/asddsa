@@ -1,0 +1,49 @@
+apiVersion: observability.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: logging
+  namespace: openshift-logging
+spec:
+  filters:
+    - name: mazlum-label
+      openshiftLabels:
+        cluster: mazlum
+      type: openshiftLabels
+    - name: mazlum-auditfiltered
+      openshiftLabels:
+        cluster: mazlum-auditfiltered
+      type: openshiftLabels
+    - kubeAPIAudit:
+        omitStages:
+          - RequestReceived
+        rules:
+          - level: Request
+            nonResourceURLs:
+              - /oauth/authorize*
+            users:
+              - 'system:anonymous'
+            verbs:
+              - get
+          - level: None
+            users:
+              - 'system:*'
+          - level: Request
+            verbs:
+              - create
+              - patch
+              - delete
+              - get
+              - list
+              - watch
+          - level: Request
+            resources:
+              - group: oauth.openshift.io
+                resources:
+                  - oauthaccesstokens
+            users:
+              - 'system:serviceaccount:openshift-authentication:oauth-openshift'
+            verbs:
+              - create
+          - level: None
+      name: akbank-audit-filter-policy
+      type: kubeAPIAudit
