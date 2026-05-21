@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+
+CLUSTER_FILE="cluster-api.txt"
+PASS_FILE="pass.txt"
+OC_USERNAME="user1"
+
+MODULES=("esp4" "esp6" "rxrpc")
+
+if [[ ! -f "$CLUSTER_FILE" ]]; then
+  echo "[FAIL] $CLUSTER_FILE dosyası bulunamadı."
+  exit 1
+fi
+
+if [[ ! -f "$PASS_FILE" ]]; then
+  echo "[FAIL] $PASS_FILE dosyası bulunamadı."
+  exit 1
+fi
+
+OC_PASSWORD="$(cat "$PASS_FILE")"
+
+if [[ -z "$OC_PASSWORD" ]]; then
+  echo "[FAIL] $PASS_FILE dosyası boş."
+  exit 1
+fi
+
+TOTAL_CLUSTER_COUNT=0
+FAILED_CLUSTER_COUNT=0
+TOTAL_MODULE_FAIL_COUNT=0
+
+check_worker_modules() {
+  local cluster_name="$1"
+  local fail_count=0
+  local workers
+  local node
+  local mod
+  local node_has_module
+
+  echo
+  echo "=== [$cluster_name] Worker Node Kernel Module Kontrolü ==="
+  echo
+
+  workers="$(oc get nodes -l node-role.kubernetes.io/worker -o name 2>/dev/null)"
+
+  if [[ -z "$workers" ]]; then
+    echo "[FAIL] [$cluster_name] Worker node bulunamadı."
+    return 1
+  fi
+
+  for node in $workers; do
+    echo "----------------------------------------"
+    echo "Cluster: $cluster_name"
+    echo "Node   : $node"
+
+    node_has_module=false
+
+    for mod in "${MODULES[@]}"; do
+      if oc debug "$node" --quiet -- chroot /host sh -c "grep -q '^${mod} ' /proc/modules" >/dev/null 2>&1; then
+        echo "[FAIL] $mod modülü yüklü"
+        node_has_module=true
+        fail_count=$((fail_count + 1))
+      else
+        echo "[PASS] $mod modülü yüklü değil"
+      fi
+    done
+
+    if [[ "$node_has_module" == "false" ]]; then
+      echo "[OK] $node üzerinde kontrol edilen modüller yüklü değil"
+    else
+      echo "[WARN] $node üzerinde en az bir modül yüklü"
+    fi
+
+    echo
+  done
+
+  if [[ "$fail_count" -eq 0 ]]; then
+    echo "[PASS] [$cluster_name] Tüm worker node'larda esp4, esp6 ve rxrpc modülleri yüklü değil."
+    return 0
+  else
+    echo "[FAIL] [$cluster_name] $fail_count adet modül kontrolü başarısız."
+    TOTAL_MODULE_FAIL_COUNT=$((TOTAL_MODULE_FAIL_COUNT + fail_count))
+    return 1
+  fi
+}
+
+login_cluster() {
+  local cluster_name="$1"
+  local api_url="$2"
+
+  echo
+  echo "========================================"
+  echo "Cluster login başlıyor"
+  echo "Cluster: $cluster_name"
+  echo "API    : $api_url"
+  echo "User   : $OC_USERNAME"
+  echo "========================================"
+
+  if oc login "$api_url" \
+    -u "$OC_USERNAME" \
+    -p "$OC_PASSWORD" \
+    --insecure-skip-tls-verify=true \
+    >/dev/null 2>&1; then
+
+    echo "[PASS] [$cluster_name] Login başarılı"
+    return 0
+  else
+    echo "[FAIL] [$cluster_name] Login başarısız"
+    return 1
+  fi
+}
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+  # Boş satırları ve comment satırlarını geç
+  [[ -z "$line" ]] && continue
+  [[ "$line" =~ ^[[:space:]]*# ]] && continue
+
+  # Format:
+  # adc - https://api.adc.xxx.com:6443
+  cluster_name="$(echo "$line" | awk -F' - ' '{print $1}' | xargs)"
+  api_url="$(echo "$line" | awk -F' - ' '{print $2}' | xargs)"
+
+  if [[ -z "$cluster_name" || -z "$api_url" ]]; then
+    echo "[WARN] Geçersiz satır atlandı: $line"
+    continue
+  fi
+
+  TOTAL_CLUSTER_COUNT=$((TOTAL_CLUSTER_COUNT + 1))
+
+  if ! login_cluster "$cluster_name" "$api_url"; then
+    FAILED_CLUSTER_COUNT=$((FAILED_CLUSTER_COUNT + 1))
+    continue
+  fi
+
+  if ! check_worker_modules "$cluster_name"; then
+    FAILED_CLUSTER_COUNT=$((FAILED_CLUSTER_COUNT + 1))
+  fi
+
+done < "$CLUSTER_FILE"
+
+echo
+echo "========================================"
+echo "GENEL ÖZET"
+echo "========================================"
+echo "Toplam cluster              : $TOTAL_CLUSTER_COUNT"
+echo "Başarısız cluster/kontrol   : $FAILED_CLUSTER_COUNT"
+echo "Başarısız modül kontrolü    : $TOTAL_MODULE_FAIL_COUNT"
+
+if [[ "$FAILED_CLUSTER_COUNT" -eq 0 && "$TOTAL_MODULE_FAIL_COUNT" -eq 0 ]]; then
+  echo "[PASS] Tüm cluster kontrolleri başarılı."
+  exit 0
+else
+  echo "[FAIL] Bazı cluster kontrolleri başarısız."
+  exit 1
+fi
