@@ -1,11 +1,150 @@
-histogram_quantile(0.99, sum by (le, name) (rate(apiserver_admission_webhook_admission_duration_seconds_bucket{type="validate",name=~".*stackrox.*|.*admission-control.*|.*rhacs.*"}[5m])))
+apiVersion: policy.open-cluster-management.io/v1
+kind: ConfigurationPolicy
+metadata:
+  name: check-ocp-upgrade-version
+spec:
+  remediationAction: inform
+  severity: medium
 
+  object-templates-raw: |
+    {{- $version := fromClusterClaim "version.openshift.io" }}
 
-sum by (name) (rate(apiserver_admission_webhook_admission_duration_seconds_sum{type="validate",name=~".*stackrox.*|.*admission-control.*|.*rhacs.*"}[5m])) / sum by (name) (rate(apiserver_admission_webhook_admission_duration_seconds_count{type="validate",name=~".*stackrox.*|.*admission-control.*|.*rhacs.*"}[5m]))
+    {{- if semverCompare ">=4.19.0" $version }}
 
+    - complianceType: mustnothave
+      objectDefinition:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ocp-upgrade-version-mismatch
+          namespace: kube-system
 
-sum by (name, type) (rate(apiserver_admission_webhook_admission_duration_seconds_count[5m]))
+    {{- else }}
 
-sum by (name, operation, type, error_type) (rate(apiserver_admission_webhook_rejection_count{name=~".*stackrox.*"}[5m]))
+    - complianceType: musthave
+      objectDefinition:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ocp-upgrade-version-mismatch
+          namespace: kube-system
 
-sum by (name, type) (rate(apiserver_admission_webhook_fail_open_count{name=~".*stackrox.*"}[5m]))
+    {{- end }}
+---
+
+apiVersion: policy.open-cluster-management.io/v1
+kind: PolicyGenerator
+metadata:
+  name: ocp-upgrade-monitor
+
+policyDefaults:
+  namespace: upgrade-policies
+  remediationAction: inform
+  severity: medium
+
+policies:
+  - name: ocp-upgrade-check
+
+    placement:
+      labelSelector:
+        matchExpressions:
+          - key: upgrade-plan
+            operator: Exists
+
+    manifests:
+      - path: 02-check-ocp-version.yaml
+---
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 01-namespace.yaml
+
+generators:
+  - 03-policy-generator.yaml
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thanos-ruler-custom-rules
+  namespace: open-cluster-management-observability
+data:
+  custom_rules.yaml: |
+    groups:
+      - name: ocp-upgrade-reminder
+        rules:
+          - alert: OCPUpgradePending
+            expr: |
+              (
+                policy_governance_info{
+                  policy_namespace="upgrade-policies",
+                  policy="ocp-upgrade-check",
+                  type="propagated"
+                } == 1
+              )
+              and on(cluster_namespace)
+              group_left(upgrade_plan)
+              (
+                label_replace(
+                  acm_managed_cluster_labels{upgrade_plan!=""},
+                  "cluster_namespace",
+                  "$1",
+                  "name",
+                  "(.*)"
+                )
+              )
+            for: 10m
+            labels:
+              severity: warning
+              category: ocp-upgrade
+              target_version: "4.19"
+            annotations:
+              summary: "OCP upgrade tamamlanmadi"
+              description: "{{ $labels.cluster_namespace }} cluster'i {{ $labels.target_version }} surumune gecmedi."
+
+---
+
+routes:
+  - receiver: ocp-upgrade-email
+    matchers:
+      - category="ocp-upgrade"
+    group_by:
+      - alertname
+    group_wait: 30s
+    group_interval: 24h
+    repeat_interval: 24h
+
+---
+
+receivers:
+  - name: ocp-upgrade-email
+    email_configs:
+      - to: "ocp-team@example.com"
+        from: "alertmanager@example.com"
+        smarthost: "smtp.example.com:25"
+        require_tls: false
+
+        headers:
+          subject: "OCP Cluster Upgrade Reminder"
+
+        html: |
+          <h3>OCP Cluster Upgrade Status</h3>
+
+          <table border="1" cellpadding="5" cellspacing="0">
+            <tr>
+              <th>Cluster</th>
+              <th>Upgrade Ayi</th>
+              <th>Durum</th>
+            </tr>
+
+            {{ range .Alerts }}
+            <tr>
+              <td>{{ .Labels.cluster_namespace }}</td>
+              <td>{{ .Labels.upgrade_plan }}</td>
+              <td>{{ .Labels.target_version }}'a gecilmedi</td>
+            </tr>
+            {{ end }}
+          </table>
