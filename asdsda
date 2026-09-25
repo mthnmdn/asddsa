@@ -66,44 +66,43 @@ generators:
 
 ---
 
-apiVersion: v1
-kind: ConfigMap
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
 metadata:
-  name: thanos-ruler-custom-rules
-  namespace: open-cluster-management-observability
-data:
-  custom_rules.yaml: |
-    groups:
-      - name: ocp-upgrade-reminder
-        rules:
-          - alert: OCPUpgradePending
-            expr: |
-              (
-                policy_governance_info{
-                  policy_namespace="upgrade-policies",
-                  policy="ocp-upgrade-check",
-                  type="propagated"
-                } == 1
+  name: ocp-upgrade-reminder
+  namespace: upgrade-policies
+spec:
+  groups:
+    - name: ocp-upgrade-reminder
+      rules:
+        - alert: OCPUpgradePending
+          expr: |
+            (
+              policy_governance_info{
+                policy_namespace="upgrade-policies",
+                policy="ocp-upgrade-check",
+                type="propagated"
+              } == 1
+            )
+            and on(cluster_namespace)
+            group_left(upgrade_plan)
+            (
+              label_replace(
+                acm_managed_cluster_labels{upgrade_plan!=""},
+                "cluster_namespace",
+                "$1",
+                "name",
+                "(.*)"
               )
-              and on(cluster_namespace)
-              group_left(upgrade_plan)
-              (
-                label_replace(
-                  acm_managed_cluster_labels{upgrade_plan!=""},
-                  "cluster_namespace",
-                  "$1",
-                  "name",
-                  "(.*)"
-                )
-              )
-            for: 10m
-            labels:
-              severity: warning
-              category: ocp-upgrade
-              target_version: "4.19"
-            annotations:
-              summary: "OCP upgrade tamamlanmadi"
-              description: "{{ $labels.cluster_namespace }} cluster'i {{ $labels.target_version }} surumune gecmedi."
+            )
+          for: 10m
+          labels:
+            severity: warning
+            category: ocp-upgrade
+            target_version: "4.19"
+          annotations:
+            summary: "OCP upgrade tamamlanmadi"
+            description: "{{ $labels.cluster_namespace }} cluster'i {{ $labels.target_version }} surumune gecmedi."
 
 ---
 
