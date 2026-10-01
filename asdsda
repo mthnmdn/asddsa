@@ -21,6 +21,51 @@ spec:
                 * on(cluster_namespace)
                 group_left(upgrade_plan)
                 (
+                  max by (cluster_namespace, upgrade_plan) (
+                    label_replace(
+                      acm_managed_cluster_labels{upgrade_plan!=""},
+                      "cluster_namespace",
+                      "$1",
+                      "name",
+                      "(.*)"
+                    )
+                  )
+                )
+              ),
+              "target_version", "4.20", "", ""
+            )
+          for: 10m
+          labels:
+            severity: forocpadmins
+            category: ocp-upgrade
+          annotations:
+            summary: "OCP upgrade tamamlanmadi"
+            description: "{{ $labels.cluster_namespace }} cluster'i {{ $labels.target_version }} surumune gecmedi. Hedef tarih {{ $labels.upgrade_plan }}"
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ocp-upgrade-reminder
+  namespace: openshift-monitoring
+spec:
+  groups:
+    - name: ocp-upgrade-reminder
+      rules:
+        - alert: OCPUpgradePending
+          expr: |
+            label_replace(
+              (
+                (
+                  policy_governance_info{
+                    policy_namespace="new-design-acm-policies",
+                    policy="check-upgrade-status",
+                    type="propagated"
+                  } == 1
+                )
+                * on(cluster_namespace)
+                group_left(upgrade_plan)
+                (
                   label_replace(
                     acm_managed_cluster_labels{upgrade_plan!=""},
                     "cluster_namespace",
