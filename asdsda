@@ -148,16 +148,16 @@ spec:
 
 ---
 
-routes:
-  - receiver: ocp-upgrade-email
-    matchers:
-      - category="ocp-upgrade"
-    group_by:
-      - alertname
-    group_wait: 30s
-    group_interval: 24h
-    repeat_interval: 24h
-
+route:
+  routes:
+    - receiver: ocp-upgrade-email
+      matchers:
+        - category="ocp-upgrade"
+      group_by:
+        - alertname
+      group_wait: 30s
+      group_interval: 24h
+      repeat_interval: 24h
 ---
 
 receivers:
@@ -167,21 +167,16 @@ receivers:
         from: "alertmanager@example.com"
         smarthost: "smtp.example.com:25"
         require_tls: false
-
-        headers:
-          subject: "OCP Cluster Upgrade Reminder"
-
+        subject: "OCP Cluster Upgrade Reminder"
         html: |
           <h3>OCP Cluster Upgrade Status</h3>
-
           <table border="1" cellpadding="5" cellspacing="0">
             <tr>
               <th>Cluster</th>
               <th>Upgrade Ayi</th>
               <th>Durum</th>
             </tr>
-
-            {{ range .Alerts }}
+            {{ range .Alerts.Firing }}
             <tr>
               <td>{{ .Labels.cluster_namespace }}</td>
               <td>{{ .Labels.upgrade_plan }}</td>
