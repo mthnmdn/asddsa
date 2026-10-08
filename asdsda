@@ -1,3 +1,5 @@
+max_over_time(sum(node:node_cpu_utilization:ratio_rate5m * on(node) group_left() (kube_node_role{role="worker"} == 1) * on(node) group_left() kube_node_status_capacity{resource="cpu"})[30d:5m])
+
 Summary
 
 We would like official confirmation on whether the OpenShift Logging ClusterLogForwarder (CLF) supports forwarding logs directly to a database (e.g. PostgreSQL, MySQL, MongoDB, or any SQL/NoSQL store).
