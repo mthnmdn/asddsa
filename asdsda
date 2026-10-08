@@ -1,3 +1,26 @@
+Summary
+
+We would like official confirmation on whether the OpenShift Logging ClusterLogForwarder (CLF) supports forwarding logs directly to a database (e.g. PostgreSQL, MySQL, MongoDB, or any SQL/NoSQL store).
+
+Environment
+- Product: Red Hat OpenShift Logging
+- Logging version: 5.6
+- OpenShift Container Platform version: <fill in, e.g. 4.12>
+- Collector: <Vector / Fluentd>
+- Use case: We need to persist/forward log (including audit) data into a relational database for downstream processing.
+
+Question
+Based on the product documentation, the supported ClusterLogForwarder output types appear to be a fixed list (Elasticsearch, Fluent Forward, Kafka, Loki, Syslog, HTTP, Google Cloud Logging, Splunk, etc.), none of which is a generic database writer. Can you please confirm, officially, that:
+
+1. ClusterLogForwarder cannot write directly to any database (SQL or NoSQL), and no database output type exists in logging 5.6.
+2. The supported output types are limited to those documented, and forwarding to a database is not a supported configuration.
+3. If a database is required as the final destination, the only supported approach is to forward to one of the documented outputs (for example Kafka) and use a separate downstream consumer to write into the database.
+
+If there is a Knowledgebase (KCS) solution or documentation section that states this explicitly, we would appreciate a link we can reference internally.
+
+Thank you.
+
+---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
