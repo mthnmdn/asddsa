@@ -1,3 +1,555 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "row",
+      "title": "Cluster Özeti",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Node Sayısı",
+      "id": 1,
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "blue" } },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value", "graphMode": "none", "textMode": "value", "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "count(kube_node_info{node=~\"$node\"})",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Aktif Pod Sayısı",
+      "description": "Succeeded/Failed (tamamlanmış) pod'lar hariç; kapasiteden düşen pod'lar.",
+      "id": 2,
+      "gridPos": { "h": 4, "w": 5, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "purple" } },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value", "graphMode": "area", "textMode": "value", "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "count(kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Toplam Pod Kapasitesi",
+      "description": "kube_node_status_allocatable{resource=\"pods\"} toplamı (node başına max-pods).",
+      "id": 3,
+      "gridPos": { "h": 4, "w": 5, "x": 9, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "text" } },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value", "graphMode": "none", "textMode": "value", "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "sum(kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "Cluster Pod Doluluğu",
+      "id": 4,
+      "gridPos": { "h": 4, "w": 5, "x": 14, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100, "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 85 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdMarkers": true, "showThresholdLabels": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "100 * count(kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum(kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "En Dolu Node",
+      "description": "Pod kapasitesine en çok yaklaşmış node'un doluluk oranı.",
+      "id": 5,
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 85 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background", "graphMode": "none", "textMode": "value_and_name", "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "topk(1, 100 * count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"}))",
+          "legendFormat": "{{node}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Node Başına Pod Sayısı ve Kapasite",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Node Pod Kapasite Tablosu",
+      "description": "Her node için aktif pod sayısı, allocatable pod kapasitesi, boş slot ve doluluk oranı.",
+      "id": 6,
+      "gridPos": { "h": 12, "w": 14, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Doluluk %" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "decimals", "value": 1 },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 100 },
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient", "valueDisplayMode": "text" } },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 70 },
+                    { "color": "red", "value": 85 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Ready" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": { "text": "NotReady", "color": "red", "index": 0 },
+                      "1": { "text": "Ready", "color": "green", "index": 1 }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Node" },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Bu node'un pod'larını göster",
+                    "url": "/d/${__dashboard.uid}?${cluster:queryparam}&var-node=${__value.raw}&${namespace:queryparam}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": { "show": true, "reducer": ["sum"], "fields": ["Pod Sayısı", "Pod Kapasitesi", "Boş Slot"] },
+        "sortBy": [ { "displayName": "Doluluk %", "desc": true } ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))",
+          "format": "table", "instant": true
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "format": "table", "instant": true
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "100 * count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "format": "table", "instant": true
+        },
+        {
+          "refId": "D",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"}) - count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))",
+          "format": "table", "instant": true
+        },
+        {
+          "refId": "E",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "sum by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\", node=~\"$node\"})",
+          "format": "table", "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "indexByName": {
+              "node": 0, "Value #E": 1, "Value #A": 2, "Value #B": 3, "Value #D": 4, "Value #C": 5
+            },
+            "renameByName": {
+              "node": "Node",
+              "Value #A": "Pod Sayısı",
+              "Value #B": "Pod Kapasitesi",
+              "Value #C": "Doluluk %",
+              "Value #D": "Boş Slot",
+              "Value #E": "Ready"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "Node Başına Pod Doluluk Oranı",
+      "id": 7,
+      "gridPos": { "h": 12, "w": 10, "x": 14, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100, "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 85 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "maxVizHeight": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "sort_desc(100 * count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"}))",
+          "legendFormat": "{{node}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Node Başına Pod Sayısı (Zaman İçinde)",
+      "id": 8,
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none", "decimals": 0,
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 5, "showPoints": "never", "spanNulls": true }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max"], "sortBy": "Last *", "sortDesc": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))",
+          "legendFormat": "{{node}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Node Başına Pod Doluluk % (Zaman İçinde)",
+      "id": 9,
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100, "decimals": 1,
+          "custom": {
+            "drawStyle": "line", "lineWidth": 1, "fillOpacity": 0, "showPoints": "never", "spanNulls": true,
+            "thresholdsStyle": { "mode": "dashed" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "transparent", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 85 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max"], "sortBy": "Last *", "sortDesc": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "100 * count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "legendFormat": "{{node}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Node ↔ Pod İlişkisi",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 102,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Node / Namespace Pod Dağılımı",
+      "description": "Her node üzerinde hangi namespace'ten kaç pod çalıştığı.",
+      "id": 10,
+      "gridPos": { "h": 12, "w": 9, "x": 0, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Pod Sayısı" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "basic", "valueDisplayMode": "text" } },
+              { "id": "color", "value": { "mode": "continuous-BlPu" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true, "cellHeight": "sm",
+        "sortBy": [ { "displayName": "Pod Sayısı", "desc": true } ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "count by (node, namespace) (kube_pod_info{node=~\"$node\", node!=\"\", namespace=~\"$namespace\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))",
+          "format": "table", "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "indexByName": { "node": 0, "namespace": 1, "Value": 2 },
+            "renameByName": { "node": "Node", "namespace": "Namespace", "Value": "Pod Sayısı" }
+          }
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Pod Listesi (Node Bazında)",
+      "description": "Seçili node/namespace'lerdeki aktif pod'lar ve üzerinde çalıştıkları node.",
+      "id": 11,
+      "gridPos": { "h": 12, "w": 15, "x": 9, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "${cluster}" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true } },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true, "cellHeight": "sm",
+        "footer": { "show": true, "reducer": ["count"], "fields": ["Pod"], "countRows": true },
+        "sortBy": [ { "displayName": "Node", "desc": false } ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${cluster}" },
+          "expr": "kube_pod_info{node=~\"$node\", node!=\"\", namespace=~\"$namespace\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)",
+          "format": "table", "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": { "names": ["node", "namespace", "pod", "pod_ip", "created_by_kind", "created_by_name"] }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": { "node": 0, "namespace": 1, "pod": 2, "pod_ip": 3, "created_by_kind": 4, "created_by_name": 5 },
+            "renameByName": {
+              "node": "Node", "namespace": "Namespace", "pod": "Pod", "pod_ip": "Pod IP",
+              "created_by_kind": "Owner Kind", "created_by_name": "Owner"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["openshift", "kubernetes", "node", "pod", "capacity"],
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "cluster",
+        "label": "Cluster",
+        "query": "prometheus",
+        "regex": "/Openshift.*/",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 1,
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "node",
+        "label": "Node",
+        "datasource": { "type": "prometheus", "uid": "${cluster}" },
+        "definition": "label_values(kube_node_info, node)",
+        "query": { "query": "label_values(kube_node_info, node)", "refId": "PrometheusVariableQueryEditor-VariableQuery", "qryType": 1 },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "hide": 0,
+        "regex": "",
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "namespace",
+        "label": "Namespace",
+        "description": "Yalnızca alttaki Node ↔ Pod İlişkisi panellerini filtreler.",
+        "datasource": { "type": "prometheus", "uid": "${cluster}" },
+        "definition": "label_values(kube_pod_info{node=~\"$node\"}, namespace)",
+        "query": { "query": "label_values(kube_pod_info{node=~\"$node\"}, namespace)", "refId": "PrometheusVariableQueryEditor-VariableQuery", "qryType": 1 },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "hide": 0,
+        "regex": "",
+        "options": []
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "OpenShift - Node & Pod İlişkisi",
+  "uid": "ocp-node-pod-capacity",
+  "version": 1,
+  "weekStart": ""
+}
+###################################################################
 max_over_time(sum(node:node_cpu_utilization:ratio_rate5m * on(node) group_left() (kube_node_role{role="worker"} == 1) * on(node) group_left() kube_node_status_capacity{resource="cpu"})[30d:5m])
 
 Summary
