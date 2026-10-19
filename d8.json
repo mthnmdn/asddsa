@@ -1,0 +1,1090 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "row",
+      "title": "Genel Bakış",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Node Sayısı",
+      "id": 1,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#277DA1"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 14,
+          "valueSize": 44
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "count(kube_node_info{node=~\"$node\"})",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Aktif Pod Sayısı",
+      "description": "Succeeded/Failed (tamamlanmış) pod'lar hariç; kapasiteden düşen pod'lar.",
+      "id": 2,
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 4,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#4D908E"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 14,
+          "valueSize": 44
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "count(kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Toplam Pod Kapasitesi",
+      "description": "kube_node_status_allocatable{resource=\"pods\"} toplamı (node başına max-pods).",
+      "id": 3,
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 9,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#577590"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 14,
+          "valueSize": 44
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "sum(kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "Cluster Pod Doluluğu",
+      "id": 4,
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 14,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#43AA8B",
+                "value": null
+              },
+              {
+                "color": "#90BE6D",
+                "value": 50
+              },
+              {
+                "color": "#F9C74F",
+                "value": 70
+              },
+              {
+                "color": "#F8961E",
+                "value": 80
+              },
+              {
+                "color": "#F94144",
+                "value": 85
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false,
+        "minVizWidth": 75,
+        "minVizHeight": 75,
+        "sizing": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 30
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "100 * count(kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum(kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "En Dolu Node",
+      "description": "Pod kapasitesine en çok yaklaşmış node'un doluluk oranı.",
+      "id": 5,
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 19,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#43AA8B",
+                "value": null
+              },
+              {
+                "color": "#90BE6D",
+                "value": 50
+              },
+              {
+                "color": "#F9C74F",
+                "value": 70
+              },
+              {
+                "color": "#F8961E",
+                "value": 80
+              },
+              {
+                "color": "#F94144",
+                "value": 85
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 14,
+          "valueSize": 30
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "topk(1, 100 * count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"}))",
+          "legendFormat": "{{node}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Node Kapasitesi",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 101,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Node Pod Kapasitesi",
+      "description": "Her node için aktif pod sayısı, allocatable pod kapasitesi, boş slot ve doluluk oranı.",
+      "id": 6,
+      "gridPos": {
+        "h": 13,
+        "w": 14,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Doluluk %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "lcd",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 220
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#43AA8B",
+                      "value": null
+                    },
+                    {
+                      "color": "#90BE6D",
+                      "value": 50
+                    },
+                    {
+                      "color": "#F9C74F",
+                      "value": 70
+                    },
+                    {
+                      "color": "#F8961E",
+                      "value": 80
+                    },
+                    {
+                      "color": "#F94144",
+                      "value": 85
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ready"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "NotReady",
+                        "color": "#F94144",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Ready",
+                        "color": "#43AA8B",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Node"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Bu node'un pod'larını göster",
+                    "url": "/d/${__dashboard.uid}?${cluster:queryparam}&${role:queryparam}&var-node=${__value.raw}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Boş Slot"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#F94144",
+                      "value": null
+                    },
+                    {
+                      "color": "#F8961E",
+                      "value": 10
+                    },
+                    {
+                      "color": "#43AA8B",
+                      "value": 30
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pod Sayısı"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pod Kapasitesi"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Boş Slot"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "Pod Sayısı",
+            "Pod Kapasitesi",
+            "Boş Slot"
+          ]
+        },
+        "sortBy": [
+          {
+            "displayName": "Doluluk %",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "100 * count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"}) - count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "sum by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\", node=~\"$node\"})",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "node": 0,
+              "Value #E": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #D": 4,
+              "Value #C": 5
+            },
+            "renameByName": {
+              "node": "Node",
+              "Value #A": "Pod Sayısı",
+              "Value #B": "Pod Kapasitesi",
+              "Value #C": "Doluluk %",
+              "Value #D": "Boş Slot",
+              "Value #E": "Ready"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Node Haritası · Pod Doluluğu",
+      "description": "Her karo bir node. Renk: %70 altı yeşil, %70–85 amber, %85 üstü kırmızı. En dolu node'lar önce.",
+      "id": 7,
+      "gridPos": {
+        "h": 13,
+        "w": 10,
+        "x": 14,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#43AA8B",
+                "value": null
+              },
+              {
+                "color": "#90BE6D",
+                "value": 50
+              },
+              {
+                "color": "#F9C74F",
+                "value": 70
+              },
+              {
+                "color": "#F8961E",
+                "value": 80
+              },
+              {
+                "color": "#F94144",
+                "value": 85
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Bu node'a odaklan",
+              "url": "/d/${__dashboard.uid}?${cluster:queryparam}&${role:queryparam}&var-node=${__field.labels.node}"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "minVizWidth": 110,
+        "minVizHeight": 64,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "sort_desc(100 * count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"}))",
+          "legendFormat": "{{node}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Zaman İçinde",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 102,
+      "panels": []
+    },
+    {
+      "type": "status-history",
+      "title": "Doluluk Geçmişi · Node Başına",
+      "description": "Her satır bir node, her hücre o zaman dilimindeki pod doluluğu.",
+      "id": 9,
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "maxDataPoints": 72,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#43AA8B",
+                "value": null
+              },
+              {
+                "color": "#90BE6D",
+                "value": 50
+              },
+              {
+                "color": "#F9C74F",
+                "value": 70
+              },
+              {
+                "color": "#F8961E",
+                "value": 80
+              },
+              {
+                "color": "#F94144",
+                "value": 85
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 90
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "rowHeight": 0.85,
+        "colWidth": 0.92,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "100 * count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1)) / sum by (node) (kube_node_status_allocatable{resource=\"pods\", node=~\"$node\"})",
+          "legendFormat": "{{node}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pod Sayısı · Node Başına",
+      "id": 8,
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${cluster}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 22,
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "gradientMode": "opacity",
+            "axisBorderShow": false,
+            "axisPlacement": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true,
+          "showLegend": true,
+          "width": 260
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${cluster}"
+          },
+          "expr": "count by (node) (kube_pod_info{node=~\"$node\", node!=\"\"} unless on (namespace, pod) (kube_pod_status_phase{phase=~\"Succeeded|Failed\"} == 1))",
+          "legendFormat": "{{node}}"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "openshift",
+    "kubernetes",
+    "node",
+    "pod",
+    "capacity"
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "cluster",
+        "label": "Cluster",
+        "query": "prometheus",
+        "regex": "/^k8s.*/",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 1,
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "role",
+        "label": "Node Rolü",
+        "description": "node-role.kubernetes.io/<rol> label'ından gelir (kube_node_role).",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${cluster}"
+        },
+        "definition": "label_values(kube_node_role, role)",
+        "query": {
+          "query": "label_values(kube_node_role, role)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery",
+          "qryType": 1
+        },
+        "regex": "/^(physical-worker|router|control-plane)$/",
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "node",
+        "label": "Node",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${cluster}"
+        },
+        "definition": "label_values(kube_node_role{role=~\"$role\"}, node)",
+        "query": {
+          "query": "label_values(kube_node_role{role=~\"$role\"}, node)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery",
+          "qryType": 1
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "regex": "",
+        "options": [],
+        "description": "Seçili rol(ler)deki node'lar. All = o rollerdeki tüm node'lar."
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "OpenShift - Node & Pod İlişkisi",
+  "uid": "ocp-node-pod-capacity",
+  "version": 7,
+  "weekStart": "",
+  "description": "OpenShift cluster'larında node başına pod sayısı, pod kapasitesi ve doluluk."
+}
