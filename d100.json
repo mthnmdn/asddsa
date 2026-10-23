@@ -1,0 +1,2272 @@
+{
+  "id": null,
+  "uid": null,
+  "title": "Worker Kapasite Planlama — Worker çıkarılabilir mi?",
+  "description": "CPU/Memory request ve kullanım ile pod kapasitesine göre, hedef doluluk oranında cluster'dan kaç worker çıkarılabileceğini gösterir.",
+  "tags": [
+    "kubernetes",
+    "capacity",
+    "kapasite"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh": "",
+  "schemaVersion": 41,
+  "version": 1,
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Veri kaynağı",
+        "query": "prometheus",
+        "regex": "/^openshift/i",
+        "current": {},
+        "hide": 0,
+        "refresh": 1
+      },
+      {
+        "type": "textbox",
+        "name": "role",
+        "label": "Worker rolü",
+        "description": "node-role.kubernetes.io/<rol> label'ındaki rol adı (kube_node_role metriği).",
+        "query": "physical-worker",
+        "current": {
+          "text": "physical-worker",
+          "value": "physical-worker"
+        },
+        "options": [
+          {
+            "text": "physical-worker",
+            "value": "physical-worker",
+            "selected": true
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "target",
+        "label": "Hedef doluluk (%)",
+        "description": "Worker'larda izin verilen azami doluluk yüzdesi.",
+        "query": "70",
+        "current": {
+          "text": "70",
+          "value": "70"
+        },
+        "options": [
+          {
+            "text": "70",
+            "value": "70",
+            "selected": true
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "type": "custom",
+        "name": "buffer",
+        "label": "Yedek worker (N+x)",
+        "description": "Gereken worker sayısına eklenen arıza payı.",
+        "query": "0,1,2,3",
+        "current": {
+          "text": "1",
+          "value": "1"
+        },
+        "options": [
+          {
+            "text": "0",
+            "value": "0",
+            "selected": false
+          },
+          {
+            "text": "1",
+            "value": "1",
+            "selected": true
+          },
+          {
+            "text": "2",
+            "value": "2",
+            "selected": false
+          },
+          {
+            "text": "3",
+            "value": "3",
+            "selected": false
+          }
+        ],
+        "multi": false,
+        "includeAll": false,
+        "hide": 0
+      },
+      {
+        "type": "custom",
+        "name": "remove",
+        "label": "Simülasyon: çıkarılacak worker",
+        "description": "",
+        "query": "0,1,2,3,4,5,6,7,8,9,10",
+        "current": {
+          "text": "1",
+          "value": "1"
+        },
+        "options": [
+          {
+            "text": "0",
+            "value": "0",
+            "selected": false
+          },
+          {
+            "text": "1",
+            "value": "1",
+            "selected": true
+          },
+          {
+            "text": "2",
+            "value": "2",
+            "selected": false
+          },
+          {
+            "text": "3",
+            "value": "3",
+            "selected": false
+          },
+          {
+            "text": "4",
+            "value": "4",
+            "selected": false
+          },
+          {
+            "text": "5",
+            "value": "5",
+            "selected": false
+          },
+          {
+            "text": "6",
+            "value": "6",
+            "selected": false
+          },
+          {
+            "text": "7",
+            "value": "7",
+            "selected": false
+          },
+          {
+            "text": "8",
+            "value": "8",
+            "selected": false
+          },
+          {
+            "text": "9",
+            "value": "9",
+            "selected": false
+          },
+          {
+            "text": "10",
+            "value": "10",
+            "selected": false
+          }
+        ],
+        "multi": false,
+        "includeAll": false,
+        "hide": 0
+      },
+      {
+        "type": "custom",
+        "name": "window",
+        "label": "Peak penceresi",
+        "description": "Kullanım hesabında bakılacak geriye dönük süre (bu süredeki en yüksek değer alınır).",
+        "query": "1d,3d,7d,14d,30d",
+        "current": {
+          "text": "7d",
+          "value": "7d"
+        },
+        "options": [
+          {
+            "text": "1d",
+            "value": "1d",
+            "selected": false
+          },
+          {
+            "text": "3d",
+            "value": "3d",
+            "selected": false
+          },
+          {
+            "text": "7d",
+            "value": "7d",
+            "selected": true
+          },
+          {
+            "text": "14d",
+            "value": "14d",
+            "selected": false
+          },
+          {
+            "text": "30d",
+            "value": "30d",
+            "selected": false
+          }
+        ],
+        "multi": false,
+        "includeAll": false,
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Özet — ${datasource}",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Mevcut worker",
+      "description": "role=$role olan node sayısı.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "count(max by (node) (kube_node_role{role=\"$role\"}))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Gereken worker",
+      "description": "CPU/Memory request, peak kullanım ve pod sayısı için hesaplanan gereken node sayılarının en büyüğü + $buffer (yedek).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(label_replace(ceil((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"CPU request\", \"\", \"\") or label_replace(ceil(max_over_time((sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[5m])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100))), \"kaynak\", \"CPU kullanım (peak)\", \"\", \"\") or label_replace(ceil((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"Memory request\", \"\", \"\") or label_replace(ceil(max_over_time((sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100))), \"kaynak\", \"Memory kullanım (peak)\", \"\", \"\") or label_replace(ceil((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"Pod sayısı\", \"\", \"\")) + $buffer",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Çıkarılabilir worker",
+      "description": "Mevcut worker − gereken worker. Negatif değer, hedefe göre worker eksiği olduğunu gösterir.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "count(max by (node) (kube_node_role{role=\"$role\"})) - (max(label_replace(ceil((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"CPU request\", \"\", \"\") or label_replace(ceil(max_over_time((sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[5m])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100))), \"kaynak\", \"CPU kullanım (peak)\", \"\", \"\") or label_replace(ceil((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"Memory request\", \"\", \"\") or label_replace(ceil(max_over_time((sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100))), \"kaynak\", \"Memory kullanım (peak)\", \"\", \"\") or label_replace(ceil((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"Pod sayısı\", \"\", \"\")) + $buffer)",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Bağlayıcı kaynak",
+      "description": "En fazla node gerektiren, yani çıkarmayı sınırlayan kaynak.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk(1, label_replace(ceil((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"CPU request\", \"\", \"\") or label_replace(ceil(max_over_time((sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[5m])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100))), \"kaynak\", \"CPU kullanım (peak)\", \"\", \"\") or label_replace(ceil((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"Memory request\", \"\", \"\") or label_replace(ceil(max_over_time((sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100))), \"kaynak\", \"Memory kullanım (peak)\", \"\", \"\") or label_replace(ceil((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"Pod sayısı\", \"\", \"\"))",
+          "legendFormat": "{{kaynak}}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "name",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Hedef doluluk",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "vector($target)",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Pending pod",
+      "description": "Cluster genelindeki Pending pod'lar. Sıfırdan büyükse kapasite sıkıntısı veya zamanlama kısıtı olabilir.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "count(kube_pod_status_phase{phase=\"Pending\"} == 1) or vector(0)",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "Kaynak bazında gereken worker (yedek hariç)",
+      "description": "Her kaynak için ayrı hesaplanan gereken node sayısı. En büyüğü bağlayıcıdır. Kullanım için $window içindeki peak değer kullanılır.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "ceil((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))))",
+          "legendFormat": "CPU request",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "ceil(max_over_time((sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[5m])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100)))",
+          "legendFormat": "CPU kullanım (peak)",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "ceil((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))))",
+          "legendFormat": "Memory request",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "D",
+          "expr": "ceil(max_over_time((sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100)))",
+          "legendFormat": "Memory kullanım (peak)",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "E",
+          "expr": "ceil((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))))",
+          "legendFormat": "Pod sayısı",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 300
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Gereken vs mevcut worker (anlık kullanımla)",
+      "description": "Zaman içinde gereken worker sayısı. Burada peak yerine anlık kullanım kullanılır.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "count(max by (node) (kube_node_role{role=\"$role\"}))",
+          "legendFormat": "Mevcut worker",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "max(label_replace(ceil((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"CPU request\", \"\", \"\") or label_replace(ceil(sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[$__rate_interval])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100))), \"kaynak\", \"CPU kullanım\", \"\", \"\") or label_replace(ceil((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"Memory request\", \"\", \"\") or label_replace(ceil(sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100))), \"kaynak\", \"Memory kullanım\", \"\", \"\") or label_replace(ceil((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (avg((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"}))))), \"kaynak\", \"Pod sayısı\", \"\", \"\")) + $buffer",
+          "legendFormat": "Gereken worker (+yedek)",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Simülasyon — $remove worker çıkarılırsa",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Kalan worker",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 4,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "(count(max by (node) (kube_node_role{role=\"$role\"})) - $remove)",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Simülasyon sonucu",
+      "description": "Tüm kaynaklarda doluluk $target% altında kalıyorsa UYGUN. $buffer bu simülasyona dahil değildir.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 15,
+        "w": 4,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "$target - max(label_replace(((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100, \"kaynak\", \"CPU request\", \"\", \"\") or label_replace(max_over_time((sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[5m])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove)) * 100, \"kaynak\", \"CPU kullanım (peak)\", \"\", \"\") or label_replace(((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100, \"kaynak\", \"Memory request\", \"\", \"\") or label_replace(max_over_time((sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove)) * 100, \"kaynak\", \"Memory kullanım (peak)\", \"\", \"\") or label_replace(((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100, \"kaynak\", \"Pod sayısı\", \"\", \"\"))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": null,
+                "to": -0.0001,
+                "result": {
+                  "text": "HEDEF AŞILIYOR",
+                  "color": "red"
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 0,
+                "to": null,
+                "result": {
+                  "text": "UYGUN",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 13,
+      "type": "bargauge",
+      "title": "Çıkarma sonrası doluluk",
+      "description": "Kalan worker'lar üzerindeki tahmini doluluk. Request tarafında DaemonSet yükü kalan node sayısına göre yeniden hesaplanır.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 15,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "CPU request",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "max_over_time((sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[5m])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove)) * 100",
+          "legendFormat": "CPU kullanım (peak)",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "Memory request",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "D",
+          "expr": "max_over_time((sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove)) * 100",
+          "legendFormat": "Memory kullanım (peak)",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "E",
+          "expr": "((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "Pod sayısı",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 300
+      }
+    },
+    {
+      "id": 14,
+      "type": "bargauge",
+      "title": "Hedefe kalan pay (puan)",
+      "description": "$target − doluluk. Negatif değer o kaynakta hedefin aşıldığını gösterir.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 15,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "$target - (((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100)",
+          "legendFormat": "CPU request",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "$target - (max_over_time((sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[5m])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove)) * 100)",
+          "legendFormat": "CPU kullanım (peak)",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "$target - (((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100)",
+          "legendFormat": "Memory request",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "D",
+          "expr": "$target - (max_over_time((sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})))[$window:5m]) / (avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove)) * 100)",
+          "legendFormat": "Memory kullanım (peak)",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "E",
+          "expr": "$target - (((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / (count(max by (node) (kube_node_role{role=\"$role\"})) - $remove) + ((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))) / avg((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100)",
+          "legendFormat": "Pod sayısı",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 5
+              }
+            ]
+          },
+          "min": -30,
+          "max": 60
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 300
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Trend — worker doluluğu",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Worker doluluğu (%)",
+      "description": "Allocatable'a göre cluster geneli doluluk. Kesikli kırmızı çizgi hedef doluluğu gösterir.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "CPU request",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[$__rate_interval])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "CPU kullanım",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "sum((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "Memory request",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "D",
+          "expr": "sum((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "Memory kullanım",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "E",
+          "expr": "count((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "Pod sayısı",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "F",
+          "expr": "vector($target)",
+          "legendFormat": "Hedef",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hedef"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "row",
+      "title": "Node detayı",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 18,
+      "type": "table",
+      "title": "Worker node'ları",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Az dolu node'lar boşaltma (drain) için adaydır. Sütun başlığına tıklayarak sıralayabilirsiniz.",
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (node) ((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum by (node) ((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (node) ((rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\"}[5m])) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum by (node) ((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "sum by (node) ((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum by (node) ((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "D",
+          "expr": "sum by (node) ((container_memory_working_set_bytes{container!=\"\", container!=\"POD\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum by (node) ((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "E",
+          "expr": "count by (node) ((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"}))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "F",
+          "expr": "count by (node) ((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) / sum by (node) ((kube_node_status_allocatable{resource=\"pods\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * 100",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "node": "Node",
+              "Value #A": "CPU request %",
+              "Value #B": "CPU kullanım %",
+              "Value #C": "Memory request %",
+              "Value #D": "Memory kullanım %",
+              "Value #E": "Pod",
+              "Value #F": "Pod %"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "CPU request %",
+                "desc": false
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU request %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU kullanım %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Memory request %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Memory kullanım %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pod %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Sığma kontrolü ve DaemonSet yükü",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "En büyük pod — CPU request",
+      "description": "DaemonSet dışındaki en büyük pod (core). Node başına kullanılabilir CPU'ya sığmalı.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(sum by (namespace, pod) ((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 21,
+      "type": "stat",
+      "title": "Node başına kullanılabilir CPU",
+      "description": "allocatable × hedef − DaemonSet request (core).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 45,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "avg((kube_node_status_allocatable{resource=\"cpu\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 22,
+      "type": "stat",
+      "title": "En büyük pod — Memory request",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 45,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(sum by (namespace, pod) ((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) unless on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 23,
+      "type": "stat",
+      "title": "Node başına kullanılabilir Memory",
+      "description": "allocatable × hedef − DaemonSet request.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 45,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "avg((kube_node_status_allocatable{resource=\"memory\"}) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) * ($target / 100) - ((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 24,
+      "type": "stat",
+      "title": "DaemonSet CPU / node",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 45,
+        "w": 3,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "((sum((((kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 25,
+      "type": "stat",
+      "title": "DaemonSet Mem / node",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 45,
+        "w": 3,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "((sum((((kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 26,
+      "type": "stat",
+      "title": "DS pod / node",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 22,
+        "y": 45,
+        "w": 2,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "((count((((kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) * on (node) group_left () max by (node) (kube_node_role{role=\"$role\"})) and on (namespace, pod) max by (namespace, pod) (kube_pod_owner{owner_kind=\"DaemonSet\"}))) or vector(0)) / count(max by (node) (kube_node_role{role=\"$role\"})))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    }
+  ]
+}
