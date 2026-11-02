@@ -1,0 +1,40 @@
+{
+  "title": "K8s Clusterlar",
+  "uid": "k8s-clusterlar",
+  "editable": true,
+  "schemaVersion": 39,
+  "time": { "from": "now-1h", "to": "now" },
+  "tags": ["kubernetes"],
+  "templating": {
+    "list": [
+      {
+        "name": "ds",
+        "label": "Cluster",
+        "type": "datasource",
+        "query": "prometheus",
+        "regex": "/^k8s.*/",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 1,
+        "hide": 2,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "repeat": "ds",
+      "repeatDirection": "h",
+      "maxPerRow": 4,
+      "options": {
+        "mode": "html",
+        "content": "<div style=\"text-align:center; font-size:36px; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding-top:12px;\">${ds:text}</div>"
+      }
+    }
+  ]
+}
