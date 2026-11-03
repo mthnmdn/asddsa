@@ -1,0 +1,96 @@
+{
+  "title": "K8s Clusterlar",
+  "uid": "k8s-clusterlar",
+  "editable": true,
+  "schemaVersion": 39,
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "5m",
+  "tags": ["kubernetes"],
+  "templating": {
+    "list": [
+      {
+        "name": "ds",
+        "label": "Cluster",
+        "type": "datasource",
+        "query": "prometheus",
+        "regex": "/^k8s.*/",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 1,
+        "hide": 2,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "transparent": true,
+      "repeat": "ds",
+      "repeatDirection": "v",
+      "gridPos": { "h": 2, "w": 5, "x": 0, "y": 0 },
+      "options": {
+        "mode": "html",
+        "content": "<div style=\"display:flex; align-items:center; height:100%; font-size:20px; font-weight:600; letter-spacing:1px; text-transform:uppercase;\">${ds:text}</div>"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "",
+      "transparent": true,
+      "repeat": "ds",
+      "repeatDirection": "v",
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "gridPos": { "h": 2, "w": 19, "x": 5, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${ds}" },
+          "expr": "count by (role) (count by (node, role) (kube_node_role))",
+          "legendFormat": "{{role}}",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "${ds}" },
+          "expr": "count(count by (node) (kube_node_info) unless on (node) count by (node) (kube_node_role))",
+          "legendFormat": "rolsüz",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "unit": "none",
+          "color": { "mode": "fixed", "fixedColor": "text" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "text", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "textMode": "value_and_name",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": { "titleSize": 13, "valueSize": 20 },
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      }
+    }
+  ]
+}
