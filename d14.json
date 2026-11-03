@@ -1,0 +1,83 @@
+{
+  "title": "K8s Clusterlar",
+  "uid": "k8s-clusterlar",
+  "editable": true,
+  "schemaVersion": 39,
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "5m",
+  "tags": ["kubernetes"],
+  "templating": {
+    "list": [
+      {
+        "name": "ds",
+        "label": "Cluster",
+        "type": "datasource",
+        "query": "prometheus",
+        "regex": "/^k8s.*/",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 1,
+        "hide": 2,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "${ds}",
+      "repeat": "ds",
+      "repeatDirection": "h",
+      "maxPerRow": 3,
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${ds}" },
+          "expr": "count by (role) (count by (node, role) (kube_node_role))",
+          "legendFormat": "{{role}}",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "${ds}" },
+          "expr": "count(count by (node) (kube_node_info) unless on (node) count by (node) (kube_node_role))",
+          "legendFormat": "rolsüz",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "unit": "none",
+          "color": { "mode": "fixed", "fixedColor": "text" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "text", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "showPercentChange": false,
+        "text": { "titleSize": 15, "valueSize": 15 },
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      }
+    }
+  ]
+}
