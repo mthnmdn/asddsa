@@ -1,0 +1,109 @@
+{
+  "title": "K8s Clusterlar",
+  "uid": "k8s-clusterlar",
+  "editable": true,
+  "schemaVersion": 39,
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "5m",
+  "tags": ["kubernetes"],
+  "templating": {
+    "list": [
+      {
+        "name": "ds",
+        "label": "Cluster",
+        "type": "datasource",
+        "query": "prometheus",
+        "regex": "/^k8s.*/",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 1,
+        "hide": 2,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "",
+      "collapsed": false,
+      "repeat": "ds",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "title": "",
+      "transparent": false,
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 1 },
+      "options": {
+        "mode": "html",
+        "content": "<div style=\"text-align:center; font-size:32px; font-weight:700; letter-spacing:2px; text-transform:uppercase;\">${ds:text}</div>"
+      }
+    },
+    {
+      "id": 3,
+      "type": "bargauge",
+      "title": "",
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${ds}" },
+          "expr": "count by (role) (count by (node, role) (kube_node_role))",
+          "legendFormat": "{{role}}",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "${ds}" },
+          "expr": "count(count by (node) (kube_node_info) unless on (node) count by (node) (kube_node_role))",
+          "legendFormat": "rolsüz",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 0,
+          "unit": "none",
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "rolsüz" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "color",
+        "namePlacement": "left",
+        "showUnfilled": true,
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 30,
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      }
+    }
+  ]
+}
