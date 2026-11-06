@@ -1,0 +1,323 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^(k8s|oke) maliyeti$"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: $"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "maxPerRow": 3,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 15,
+          "valueSize": 15
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.10+security-01",
+      "repeat": "ds",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "expr": "count by (role) (count by (node, role) (kube_node_role))",
+          "instant": true,
+          "legendFormat": "{{role}}",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "expr": "count(count by (node) (kube_node_info) unless on (node) count by (node) (kube_node_role))",
+          "instant": true,
+          "legendFormat": "rolsüz",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "expr": "count(count by (namespace, pod) (kube_pod_status_ready{condition=\"true\", namespace!~\"default|cilium-.*|cert-manager|dynatrace|huawei-csi|piridx-.*|otel-collector-.*|keda|nvidia-.*|gpu-.*|kube-.*|open-cluster-.*\"} == 1)) or vector(0)",
+          "instant": true,
+          "legendFormat": "uw pod sayısı",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "expr": "(sum(max by (node) (kube_node_status_capacity{resource=\"cpu\"}) * on (node) max by (node) (kube_node_role{role=~\"control-plane|router|infra|virtual-worker\"})) or vector(0)) * ($vcpu_esx + $vcpu_vmware + $vcpu_rhel) + (count(max by (node) (kube_node_role{role=\"physical-worker\"})) or vector(0)) * ($fiziksel_sunucu + $fiziksel_rhel) + (count(count by (node) (kube_node_role{role=~\"virtual-worker|physical-worker|infra|control-plane\"})) or vector(0)) * $node_support",
+          "instant": true,
+          "legendFormat": "k8s maliyeti",
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "expr": "(sum(max by (node) (kube_node_status_capacity{resource=\"cpu\"}) * on (node) max by (node) (kube_node_role{role=~\"control-plane|router|infra|virtual-worker\"})) or vector(0)) * $vcpu_vmware + (count(max by (node) (kube_node_role{role=\"physical-worker\"})) or vector(0)) * ($fiziksel_sunucu + $oke_lisans) + (count(max by (node) (kube_node_role{role=\"virtual-worker\"})) or vector(0)) * $oke_lisans",
+          "instant": true,
+          "legendFormat": "oke maliyeti",
+          "range": false,
+          "refId": "E"
+        }
+      ],
+      "title": "${ds}",
+      "type": "stat"
+    }
+  ],
+  "preload": false,
+  "refresh": "5m",
+  "schemaVersion": 42,
+  "tags": [
+    "kubernetes"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 2,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "ds",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "/^k8s.*/",
+        "type": "datasource"
+      },
+      {
+        "name": "vcpu_esx",
+        "label": "y · vCPU başına ESX host maliyeti",
+        "type": "constant",
+        "hide": 2,
+        "query": "15",
+        "current": {
+          "text": "15",
+          "value": "15"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "15",
+            "value": "15"
+          }
+        ]
+      },
+      {
+        "name": "vcpu_vmware",
+        "label": "z · vCPU başına VMware maliyeti",
+        "type": "constant",
+        "hide": 2,
+        "query": "25",
+        "current": {
+          "text": "25",
+          "value": "25"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "25",
+            "value": "25"
+          }
+        ]
+      },
+      {
+        "name": "vcpu_rhel",
+        "label": "q · vCPU başına RHEL maliyeti",
+        "type": "constant",
+        "hide": 2,
+        "query": "10",
+        "current": {
+          "text": "10",
+          "value": "10"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "10",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "name": "fiziksel_sunucu",
+        "label": "m · Fiziksel sunucu maliyeti",
+        "type": "constant",
+        "hide": 2,
+        "query": "400",
+        "current": {
+          "text": "400",
+          "value": "400"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "400",
+            "value": "400"
+          }
+        ]
+      },
+      {
+        "name": "fiziksel_rhel",
+        "label": "p · Fiziksel sunucu RHEL maliyeti",
+        "type": "constant",
+        "hide": 2,
+        "query": "150",
+        "current": {
+          "text": "150",
+          "value": "150"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "150",
+            "value": "150"
+          }
+        ]
+      },
+      {
+        "name": "oke_lisans",
+        "label": "t · OKE lisans maliyeti",
+        "type": "constant",
+        "hide": 2,
+        "query": "300",
+        "current": {
+          "text": "300",
+          "value": "300"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "300",
+            "value": "300"
+          }
+        ]
+      },
+      {
+        "name": "node_support",
+        "label": "k · Node başına support maliyeti",
+        "type": "constant",
+        "hide": 2,
+        "query": "50",
+        "current": {
+          "text": "50",
+          "value": "50"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "50",
+            "value": "50"
+          }
+        ]
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "Europe/Istanbul",
+  "title": "K8s Envanter",
+  "uid": "k8s-envanter",
+  "version": 13,
+  "weekStart": ""
+}
